@@ -1,4 +1,258 @@
-<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[React]]></title><description><![CDATA[用于构建用户界面的 JavaScript 库]]></description><link>https://zh-hans.reactjs.org</link><generator>GatsbyJS</generator><lastBuildDate>Fri, 21 Aug 2020 03:40:47 GMT</lastBuildDate><item><title><![CDATA[React Hooks 的体系设计之一 - 分层]]></title><description><![CDATA[<blockquote>
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[React]]></title><description><![CDATA[用于构建用户界面的 JavaScript 库]]></description><link>https://zh-hans.reactjs.org</link><generator>GatsbyJS</generator><lastBuildDate>Sat, 22 Aug 2020 05:14:41 GMT</lastBuildDate><item><title><![CDATA[React Hooks 的体系设计之二 - 状态粒度]]></title><description><![CDATA[<blockquote>
+<p>本文由百度资深研发工程师兼百度 ECOMFE FE-CMC 现任主席 — 张立理大佬授权转载。本系列文章对 Hook 进行了深度剖析。</p>
+</blockquote>
+<p>继续读基于 hook 的状态管理，毕竟状态无论什么时候都是 react 的重中之重。</p>
+<p>在有了 <code class="gatsby-code-text">useState</code> 这东西之后，我们会发现状态被天生地“拆散”了，比如曾经有一个类组件：</p>
+<div class="gatsby-highlight" data-language="jsx"><pre class="gatsby-code-jsx"><code class="gatsby-code-jsx"><span class="token keyword">class</span> <span class="token class-name">TodoList</span> <span class="token keyword">extends</span> <span class="token class-name">Component</span> <span class="token punctuation">{</span>
+    state <span class="token operator">=</span> <span class="token punctuation">{</span>
+        dataSource<span class="token operator">:</span> <span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
+        isLoading<span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>
+        filterText<span class="token operator">:</span> <span class="token string">''</span><span class="token punctuation">,</span>
+        filterType<span class="token operator">:</span> <span class="token string">'all'</span><span class="token punctuation">,</span>
+    <span class="token punctuation">}</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span></code></pre></div>
+<p>放到 hook 上，大概率就是这样子的了：</p>
+<div class="gatsby-highlight" data-language="jsx"><pre class="gatsby-code-jsx"><code class="gatsby-code-jsx"><span class="token keyword">const</span> <span class="token function-variable function">TodoList</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+    <span class="token keyword">const</span> <span class="token punctuation">[</span>dataSource<span class="token punctuation">,</span> setDataSource<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token function">useState</span><span class="token punctuation">(</span><span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">const</span> <span class="token punctuation">[</span>isLoading<span class="token punctuation">,</span> setLoading<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token function">useState</span><span class="token punctuation">(</span><span class="token boolean">true</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">const</span> <span class="token punctuation">[</span>filterText<span class="token punctuation">,</span> filterByText<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token function">useState</span><span class="token punctuation">(</span><span class="token string">''</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">const</span> <span class="token punctuation">[</span>filterType<span class="token punctuation">,</span> filterByType<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token function">useState</span><span class="token punctuation">(</span><span class="token string">'all'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span></code></pre></div>
+<p>老实说这算好的了，至少还搞了发起名的艺术，没有啥都叫 <code class="gatsby-code-text">setFooBar</code>。</p>
+<p>上面的这个转换方式无疑是正确的，不过现实并不总这么友好，状态拆分的时候，容易出现粒度控制不好的情况。</p>
+<h2 id="粒度过细"><a href="#%E7%B2%92%E5%BA%A6%E8%BF%87%E7%BB%86" aria-hidden class="anchor"><svg aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>粒度过细</h2>
+<p>如果按照标准的每一个状态对应一个 <code class="gatsby-code-text">useState</code> 的做法，自然是逻辑上正确的，但它容易造成状态粒度过细的问题。</p>
+<p>讲一个故事：</p>
+<blockquote>
+<p>做一个表格，带一个选中功能，其中一个点是“按住 SHIFT 的同时点击一行可以选中一个区域”。</p>
+</blockquote>
+<p>为了实现这个功能，我们需要 2 套逻辑：</p>
+<ul>
+<li>当点击一行时，选中这一行。</li>
+<li>按 SHIFT 点击时，把上一次选中行 (或第一行) 到当前行都选中。</li>
+</ul>
+<p>从这个场景我们能分析出一个结论：点击一行的时候，除了选中它，还需要记录最后一次选中的行。为了简化这个模型，代码中我先不管“取消选择”的效果：</p>
+<div class="gatsby-highlight" data-language="jsx"><pre class="gatsby-code-jsx"><code class="gatsby-code-jsx"><span class="token keyword">const</span> <span class="token function-variable function">SelectableList</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+    <span class="token keyword">const</span> <span class="token punctuation">[</span>selection<span class="token punctuation">,</span> setSelection<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token function">useState</span><span class="token punctuation">(</span><span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">const</span> <span class="token punctuation">[</span>lastSelected<span class="token punctuation">,</span> setLastSelected<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token function">useState</span><span class="token punctuation">(</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">const</span> selectLine <span class="token operator">=</span> <span class="token function">useCallback</span><span class="token punctuation">(</span>
+        <span class="token parameter">index</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+            <span class="token function">setSelection</span><span class="token punctuation">(</span><span class="token parameter">lines</span> <span class="token operator">=></span> lines<span class="token punctuation">.</span><span class="token function">concat</span><span class="token punctuation">(</span>index<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+            <span class="token function">setLastSelected</span><span class="token punctuation">(</span>index<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        <span class="token punctuation">[</span><span class="token punctuation">]</span>
+    <span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span></code></pre></div>
+<p>仔细看 <code class="gatsby-code-text">useCallback</code> 中的部分，我们能看到它会连续调用 2 个状态的更新，这会造成什么情况呢？每一次状态更新都触发一次渲染，会导致多次渲染的浪费吗？</p>
+<p>答案是<strong>不好说</strong>，如果这件事发生在 React 管理的事件中，则更新会被合并起来，如果发生在其它场合 (比如异步结束时)，则会使得 React 触发多次渲染。为此我创建了一个 <a href="https://codesandbox.io/s/set-multiple-state-in-callback-6m6vd" target="_blank" rel="nofollow noopener noreferrer">CodeSandbox 示例</a>来说明。</p>
+<p>所以我们今天要谈的不是一个性能问题，而是一个代码的组织和可读性问题。</p>
+<p>在 class 时代，我们会看到这样的代码：</p>
+<div class="gatsby-highlight" data-language="jsx"><pre class="gatsby-code-jsx"><code class="gatsby-code-jsx"><span class="token keyword">class</span> <span class="token class-name">SelectableList</span> <span class="token keyword">extends</span> <span class="token class-name">Component</span> <span class="token punctuation">{</span>
+    <span class="token function-variable function">selectLine</span> <span class="token operator">=</span> <span class="token parameter">index</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+        <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">setState</span><span class="token punctuation">(</span><span class="token parameter">state</span> <span class="token operator">=></span> <span class="token punctuation">(</span><span class="token punctuation">{</span>
+            selection<span class="token operator">:</span> state<span class="token punctuation">.</span>selection<span class="token punctuation">.</span><span class="token function">concat</span><span class="token punctuation">(</span>index<span class="token punctuation">)</span><span class="token punctuation">,</span>
+            lastSelected<span class="token operator">:</span> index
+        <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span></code></pre></div>
+<p>我们并不会把这代码写成：</p>
+<div class="gatsby-highlight" data-language="jsx"><pre class="gatsby-code-jsx"><code class="gatsby-code-jsx"><span class="token keyword">class</span> <span class="token class-name">SelectableList</span> <span class="token keyword">extends</span> <span class="token class-name">Component</span> <span class="token punctuation">{</span>
+    <span class="token function-variable function">selectLine</span> <span class="token operator">=</span> <span class="token parameter">index</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+        <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">setState</span><span class="token punctuation">(</span><span class="token parameter">state</span> <span class="token operator">=></span> <span class="token punctuation">(</span><span class="token punctuation">{</span>selection<span class="token operator">:</span> state<span class="token punctuation">.</span>selection<span class="token punctuation">.</span><span class="token function">concat</span><span class="token punctuation">(</span>index<span class="token punctuation">)</span><span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">setState</span><span class="token punctuation">(</span><span class="token punctuation">{</span>lastSelected<span class="token operator">:</span> index<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span></code></pre></div>
+<p>不否认 <strong>class 时代状态的集中管理是过于粗放的</strong>，但那个时代的状态更新粒度基本是没有问题的，所以在使用 hook 的时候千万不要太过暴力的拆分状态。<strong>过于细粒度的拆分状态会导致代码阅读者难以理解状态间的关系，无形提升代码维护的难度</strong>。</p>
+<h2 id="使用-reducer-管理状态更新"><a href="#%E4%BD%BF%E7%94%A8-reducer-%E7%AE%A1%E7%90%86%E7%8A%B6%E6%80%81%E6%9B%B4%E6%96%B0" aria-hidden class="anchor"><svg aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>使用 reducer 管理状态更新</h2>
+<p>现在搞清楚了状态粒度太细是不好的，所以不妨将上面示例的状态重新再合并回来：</p>
+<div class="gatsby-highlight" data-language="jsx"><pre class="gatsby-code-jsx"><code class="gatsby-code-jsx"><span class="token keyword">const</span> <span class="token constant">DEFAULT_SELECTION_STATE</span> <span class="token operator">=</span> <span class="token punctuation">{</span>
+    selection<span class="token operator">:</span> <span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
+    lastSelected<span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">,</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span>
+
+<span class="token keyword">const</span> <span class="token function-variable function">SelectableList</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+    <span class="token keyword">const</span> <span class="token punctuation">[</span>selectionState<span class="token punctuation">,</span> setSelectionState<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token function">useState</span><span class="token punctuation">(</span><span class="token constant">DEFAULT_SELECTION_STATE</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">const</span> selectLine <span class="token operator">=</span> <span class="token function">useCallback</span><span class="token punctuation">(</span>
+        <span class="token parameter">index</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+            <span class="token keyword">const</span> <span class="token function-variable function">updater</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter"><span class="token punctuation">{</span>selection<span class="token punctuation">}</span></span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+                <span class="token keyword">return</span> <span class="token punctuation">{</span>
+                    selection<span class="token operator">:</span> selection<span class="token punctuation">.</span><span class="token function">concat</span><span class="token punctuation">(</span>index<span class="token punctuation">)</span><span class="token punctuation">,</span>
+                    lastSelected<span class="token operator">:</span> index<span class="token punctuation">,</span>
+                <span class="token punctuation">}</span><span class="token punctuation">;</span>
+            <span class="token punctuation">}</span><span class="token punctuation">;</span>
+            <span class="token function">setSelectionState</span><span class="token punctuation">(</span>updater<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        <span class="token punctuation">[</span><span class="token punctuation">]</span>
+    <span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span></code></pre></div>
+<p>没什么难度，确实没什么难度。</p>
+<p>但这种做法，依然会有一个问题：<strong>状态的更新与状态的声明距离过远</strong>。在这个示例中很难看出问题，因为总共也就 20 行，状态声明后立刻有 <code class="gatsby-code-text">useCallback</code> 的调用说明怎么更新它。但在现实中，我们很容易面对 300 + 行的组件，面对状态的声明在第 1 行，状态的更新在第 40 行，甚至在最终 JSX 中的某个 <code class="gatsby-code-text">onClick</code> 里的一个箭头函数中。</p>
+<p>在这样的代码里，阅读者想搞清楚一个状态被如何使用、如何更新是非常困难的，这不仅降低代码的可维护性，还给代码的学习者很大的挫败感，久而久之的影响就是<strong>谁也不愿意接手这代码</strong>。</p>
+<p>解决这个问题通常有 2 种方法：</p>
+<ol>
+<li>把状态和更新封装到自定义的 hook 中，比如就叫 <code class="gatsby-code-text">useSelection</code>。</li>
+<li>使用 <code class="gatsby-code-text">useReducer</code> 来实现。</li>
+</ol>
+<p>第一种方法自不必说，能不能找到合适的粒度来实现自定义 hook 就是对 react 开发者的素质的考验。但不少时候自定义 hook 作为一种解决方案还是过于重量级，虽然它仅仅是一个函数，但依然会需要阅读者去理解输入输出，使用 TypeScript 还可能造成类型定义上的额外工作。</p>
+<p>使用 <code class="gatsby-code-text">useReducer</code> 可以在不少轻量级的场景里快速地将状态声明和状态更新放在一起，比如上面的例子：</p>
+<div class="gatsby-highlight" data-language="jsx"><pre class="gatsby-code-jsx"><code class="gatsby-code-jsx"><span class="token keyword">const</span> <span class="token function-variable function">SelectableList</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+    <span class="token keyword">const</span> <span class="token punctuation">[</span>selectionState<span class="token punctuation">,</span> dispatchSelectionState<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token function">useReducer</span><span class="token punctuation">(</span>
+        <span class="token punctuation">(</span><span class="token parameter">state<span class="token punctuation">,</span> action</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+            <span class="token keyword">switch</span> <span class="token punctuation">(</span>action<span class="token punctuation">.</span>type<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+                <span class="token keyword">case</span> <span class="token string">'select'</span><span class="token operator">:</span>
+                    <span class="token keyword">return</span> <span class="token punctuation">{</span>
+                        selection<span class="token operator">:</span> state<span class="token punctuation">.</span>selection<span class="token punctuation">.</span><span class="token function">concat</span><span class="token punctuation">(</span>action<span class="token punctuation">.</span>payload<span class="token punctuation">)</span><span class="token punctuation">,</span>
+                        lastSelected<span class="token operator">:</span> action<span class="token punctuation">.</span>payload<span class="token punctuation">,</span>
+                    <span class="token punctuation">}</span><span class="token punctuation">;</span>
+                <span class="token keyword">default</span><span class="token operator">:</span>
+                    <span class="token keyword">return</span> state<span class="token punctuation">;</span>
+            <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        <span class="token punctuation">{</span>selection<span class="token operator">:</span> <span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span> lastSelected<span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">}</span>
+    <span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span></code></pre></div>
+<p>可以看到的是，通过 <code class="gatsby-code-text">useReducer</code> 我们传递一个函数，这个函数清晰地表达了 <code class="gatsby-code-text">&#39;select&#39;</code> 这个类型的操作，以及对应的状态更新。<code class="gatsby-code-text">useReducer</code> 的第二个参数也很好地说明了状态的结构。</p>
+<p>当然如果使用本系列前一篇中讲述的 <code class="gatsby-code-text">useImmer</code> 或 <code class="gatsby-code-text">useMethods</code> 会更容易实现：</p>
+<div class="gatsby-highlight" data-language="jsx"><pre class="gatsby-code-jsx"><code class="gatsby-code-jsx"><span class="token keyword">const</span> <span class="token function-variable function">SelectableList</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+    <span class="token keyword">const</span> <span class="token punctuation">[</span>selectionState<span class="token punctuation">,</span> <span class="token punctuation">{</span>select<span class="token punctuation">}</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token function">useMethods</span><span class="token punctuation">(</span>
+        methods<span class="token punctuation">,</span>
+        <span class="token punctuation">{</span>selection<span class="token operator">:</span> <span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span> lastSelected<span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">}</span>
+    <span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span></code></pre></div>
+<h2 id="状态过粗"><a href="#%E7%8A%B6%E6%80%81%E8%BF%87%E7%B2%97" aria-hidden class="anchor"><svg aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>状态过粗</h2>
+<p>反过来说，状态也可能太粗，比如我们硬是将整个 class 的状态移到一个 <code class="gatsby-code-text">useState</code> 里：</p>
+<div class="gatsby-highlight" data-language="jsx"><pre class="gatsby-code-jsx"><code class="gatsby-code-jsx"><span class="token keyword">const</span> <span class="token constant">DEFAULT_STATE</span> <span class="token operator">=</span> <span class="token punctuation">{</span>
+    dataSource<span class="token operator">:</span> <span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
+    isLoading<span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>
+    filterText<span class="token operator">:</span> <span class="token string">''</span><span class="token punctuation">,</span>
+    filterType<span class="token operator">:</span> <span class="token string">'all'</span><span class="token punctuation">,</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span>
+
+<span class="token keyword">const</span> <span class="token function-variable function">TodoList</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+    <span class="token keyword">const</span> <span class="token punctuation">[</span>state<span class="token punctuation">,</span> setState<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token function">useState</span><span class="token punctuation">(</span><span class="token constant">DEFAULT_STATE</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span></code></pre></div>
+<p>我个人是不太能想象谁会去写这样的代码的，也许背了一个“把 class 全部变成 hook”的 KPI 的可怜孩子会玩这一套……</p>
+<p>不过在此依然需要提一下状态过粗的代价，试想这样的组件：</p>
+<div class="gatsby-highlight" data-language="jsx"><pre class="gatsby-code-jsx"><code class="gatsby-code-jsx"><span class="token keyword">class</span> <span class="token class-name">UserInfo</span> <span class="token keyword">extends</span> <span class="token class-name">Component</span> <span class="token punctuation">{</span>
+    state <span class="token operator">=</span> <span class="token punctuation">{</span>
+        isBaseLoading<span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>
+        isDetailLoading<span class="token operator">:</span> <span class="token boolean">false</span><span class="token punctuation">,</span>
+        baseInfo<span class="token operator">:</span> <span class="token keyword">null</span><span class="token punctuation">,</span>
+        detailInfo<span class="token operator">:</span> <span class="token keyword">null</span><span class="token punctuation">,</span>
+        isDetailVisible<span class="token operator">:</span> <span class="token boolean">false</span><span class="token punctuation">,</span>
+    <span class="token punctuation">}</span><span class="token punctuation">;</span>
+
+    <span class="token keyword">async</span> <span class="token function-variable function">showDetail</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+        <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">.</span>state<span class="token punctuation">.</span>detailInfo<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+            <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">setState</span><span class="token punctuation">(</span><span class="token punctuation">{</span>isDetailVisible<span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+        <span class="token keyword">else</span> <span class="token punctuation">{</span>
+            <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">setState</span><span class="token punctuation">(</span><span class="token punctuation">{</span>isDetailLoading<span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+            <span class="token keyword">const</span> detail <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token function">fetchDetail</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+            <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">setState</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+                isDetailLoading<span class="token operator">:</span> <span class="token boolean">false</span><span class="token punctuation">,</span>
+                detailInfo<span class="token operator">:</span> detail<span class="token punctuation">,</span>
+                isDetailVisible<span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>
+            <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span></code></pre></div>
+<p>然后我们还有一个这样的组件：</p>
+<div class="gatsby-highlight" data-language="jsx"><pre class="gatsby-code-jsx"><code class="gatsby-code-jsx"><span class="token keyword">class</span> <span class="token class-name">TodoList</span> <span class="token punctuation">{</span>
+    state <span class="token operator">=</span> <span class="token punctuation">{</span>
+        filterText<span class="token operator">:</span> <span class="token string">''</span><span class="token punctuation">,</span>
+        filterType<span class="token operator">:</span> <span class="token string">'all'</span><span class="token punctuation">,</span>
+        showFilterPanel<span class="token operator">:</span> <span class="token boolean">false</span><span class="token punctuation">,</span>
+    <span class="token punctuation">}</span><span class="token punctuation">;</span>
+
+    <span class="token function-variable function">toggleFilterPanel</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+        <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">setStae</span><span class="token punctuation">(</span><span class="token parameter">s</span> <span class="token operator">=></span> <span class="token punctuation">(</span><span class="token punctuation">{</span>showFilterPanel<span class="token operator">:</span> <span class="token operator">!</span>s<span class="token punctuation">.</span>showFilterPanel<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span></code></pre></div>
+<p>这有什么问题呢？仔细去看 2 个组件，我们会发现它们其实是有共同的部分的：</p>
+<ol>
+<li>有一个能展开/收起的状态，一个叫 <code class="gatsby-code-text">isDetailVisible</code> 一个叫 <code class="gatsby-code-text">showFilterPanel</code>。</li>
+<li>有多个和异步过程有关的状态，比如 <code class="gatsby-code-text">isBaseLoading</code> 和 <code class="gatsby-code-text">isDetailLoading</code>。</li>
+<li>有异步状态与结果的成对出现，比如 <code class="gatsby-code-text">isBaseLoading</code> 配对 <code class="gatsby-code-text">baseInfo</code>，<code class="gatsby-code-text">isDetailLoading</code> 配对 <code class="gatsby-code-text">detailInfo</code>。</li>
+</ol>
+<p>但能得到这些结论，很大程度上归功于我给的代码过于精简，以及给了阅读者明确的“去发现”的目的。</p>
+<p>试想你有一个超过 10 万行代码的项目，里面有 800 多个组件，有些组件有 1200 多行，你作为一个技术负责人空降到项目中，有信心去发现这些东西吗？反正我作为一个所谓的高 T，很实诚地说我做不到。</p>
+<p>所以状态粒度过粗的问题就在于，它会隐藏掉可以复用的状态，让人不知不觉通过“行云流水地重复编码”来实现功能，离复用和精简越来越远。</p>
+<p>当然，有时候保持一定程度上的重复是有意义的，比如使代码更具语义化，让人更看得懂代码在干啥，这在 class 时代特别明显。在 class 明代能解决这一问题的办法就是 HOC，比如我们做 <code class="gatsby-code-text">withLoading</code>、<code class="gatsby-code-text">withToggle</code>、<code class="gatsby-code-text">withRemoteData</code> 等等……</p>
+<p>然后就会变成这样：</p>
+<p>
+  <a
+    class="gatsby-resp-image-link"
+    href="/static/24e3764b9fb11a47e18be65f8426db93/394f7/1_yJyHd9CKkqgToX7DtI6fcg.png"
+    style="display: block"
+    target="_blank"
+    rel="noopener"
+  >
+  
+  <span
+    class="gatsby-resp-image-wrapper"
+    style="position: relative; display: block;  max-width: 707px; margin-left: auto; margin-right: auto;"
+  >
+    <span
+      class="gatsby-resp-image-background-image"
+      style="padding-bottom: 36.66666666666667%; position: relative; bottom: 0; left: 0; background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAHCAIAAACHqfpvAAAACXBIWXMAAAsSAAALEgHS3X78AAABFUlEQVQY02WOy07DMBBF8///wEOsqKCCHQilgIT4BbZAS+vEzmM89jh24gcOSBWlV2cxizl3pnh9w8sVuy7Z8qm6ysOqytw814uyWj6y25fdYvV5cfd+er89eRBnJT8vxZ4ipeSdJS5pB8RAVz2xljiYmilRK1EpvkVRE3QD4jhO6U8KH2KMyVkHQpI0jsggDGYYSA/YaRqNJq3ITSGGkJdDTHuKMMsx11hnFTTAWc2NFLwVUgGiqNpOS6mcHUII6TC/8lzTdMjrpuHZJtFAJVC0AD2idqitcd6O4R+znDtIGf7RNJteCq0hv+zc6Ecfpph8TFNIo4/HzLIG3a872PSw6fLQr1v46pBJarXFwbsp/hw4zjeiDIisW3PYQAAAAABJRU5ErkJggg=='); background-size: cover; display: block;"
+    >
+      <img
+        class="gatsby-resp-image-image"
+        style="width: 100%; height: 100%; margin: 0; vertical-align: middle; position: absolute; top: 0; left: 0; box-shadow: inset 0px 0px 0px 400px white;"
+        alt="1 yJyHd9CKkqgToX7DtI6fcg"
+        title=""
+        src="/static/24e3764b9fb11a47e18be65f8426db93/394f7/1_yJyHd9CKkqgToX7DtI6fcg.png"
+        srcset="/static/24e3764b9fb11a47e18be65f8426db93/65ed1/1_yJyHd9CKkqgToX7DtI6fcg.png 210w,
+/static/24e3764b9fb11a47e18be65f8426db93/d10fb/1_yJyHd9CKkqgToX7DtI6fcg.png 420w,
+/static/24e3764b9fb11a47e18be65f8426db93/394f7/1_yJyHd9CKkqgToX7DtI6fcg.png 707w"
+        sizes="(max-width: 707px) 100vw, 707px"
+      />
+    </span>
+  </span>
+  
+  </a>
+    </p>
+<p>好在 hook 能比较合理地去解决这种嵌套问题。</p>
+<h2 id="合理设计粒度"><a href="#%E5%90%88%E7%90%86%E8%AE%BE%E8%AE%A1%E7%B2%92%E5%BA%A6" aria-hidden class="anchor"><svg aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>合理设计粒度</h2>
+<p>本章讲了 2 个主要的论述：状态粒度太细不好，粒度太粗也不好。</p>
+<p>在实际的业务里，比这复杂的多的事情天天在发生，远不是太细了合一合、太粗了分一分这么简单，大部分时候我们面对的是这样的情况：</p>
+<p>
+  <a
+    class="gatsby-resp-image-link"
+    href="/static/a2a4a2c5d0d50a193a6c70afa4878f7f/daed9/Jietu20200222-133557%402x.png"
+    style="display: block"
+    target="_blank"
+    rel="noopener"
+  >
+  
+  <span
+    class="gatsby-resp-image-wrapper"
+    style="position: relative; display: block;  max-width: 840px; margin-left: auto; margin-right: auto;"
+  >
+    <span
+      class="gatsby-resp-image-background-image"
+      style="padding-bottom: 80.47619047619048%; position: relative; bottom: 0; left: 0; background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAQCAYAAAAWGF8bAAAACXBIWXMAABYlAAAWJQFJUiTwAAACpElEQVQ4y22US3LTQBCGfQEW3IADcAWKLbsUJ8mKKm7BgmJHsQGyhAVFsmABpFgEXCEhwY6thxXLtuyxZMl6v2b005IsE8XpKs9Yqp6v++/uUacoCpTW7KlIMQ2vMfJlaIGMcaAizIONj7jxK3D7bGmdmy/MhGHg/oWdrhDxEBGBvMyF7PUxjSb1Yfy3u6Cd5s8qMeng1daZC7RMt8+xWH4DomuIYIgiWbTAzV5lyAsOyettIpZvxCaXolpFMqPVwggknwKDyiKiMYTfb8G2QDdzqFajJje8lgrs/xQkmR5zGzmVIXv5AvqL5zCEtZVepBZlO2hLLpdZpGOd2tv67JGyzlvA4WWXJIJGiB49hPH4ARawNwBeQ0MVRbZuS2aRASunyDlJNXXMhgqG5xJyhaKz39C9FIOzIbqnXRxPRjB9vikLrfGM6snawEBEGJl/gIs+wo+/AGlRSedRiN73Q0wpQGmTlGES6JiuM1wxr4Ykt4B1DwqMLj4jMOZw997BfXNSOQyWCZYOdf66D6wD/HC+YF9+gq/uASziaQRGMoKgHrSBloXY0NCn4jvdUmaMmFRpVtkVHwk7IeYxlETBM/UpDlcHFeByQp0OpN2m5JpMkVJkyCHnCqa5BsU2cMFmYNyFtO7CP/9ADXI2gxCR/xjj2SWcKNsdG65rFKmuSVnrhPvor3R0DQn+5BWEeYRC6ZGPChEq4CGNWMagrmIEKd8FFp4LrtWFLzhHM2jSjObs+B7iT/eRG/VYCVFL47T1Fv7uXW4euCpBWGaTZGXTMIM0OAJO35ek1lW8Yj5WYbZzp7fA8s5xdVjLNxn4kkaHGZieyRhOQsyDHHM3huEmVWZzL9m5xztfmyo7x4ZgcwgCcpNV8xjkHMY6riAlMM7FnbDS/gFmSsPuOExcQQAAAABJRU5ErkJggg=='); background-size: cover; display: block;"
+    >
+      <img
+        class="gatsby-resp-image-image"
+        style="width: 100%; height: 100%; margin: 0; vertical-align: middle; position: absolute; top: 0; left: 0; box-shadow: inset 0px 0px 0px 400px white;"
+        alt="Jietu20200222 133557 2x"
+        title=""
+        src="/static/a2a4a2c5d0d50a193a6c70afa4878f7f/1e088/Jietu20200222-133557%402x.png"
+        srcset="/static/a2a4a2c5d0d50a193a6c70afa4878f7f/65ed1/Jietu20200222-133557%402x.png 210w,
+/static/a2a4a2c5d0d50a193a6c70afa4878f7f/d10fb/Jietu20200222-133557%402x.png 420w,
+/static/a2a4a2c5d0d50a193a6c70afa4878f7f/1e088/Jietu20200222-133557%402x.png 840w,
+/static/a2a4a2c5d0d50a193a6c70afa4878f7f/78612/Jietu20200222-133557%402x.png 1260w,
+/static/a2a4a2c5d0d50a193a6c70afa4878f7f/daed9/Jietu20200222-133557%402x.png 1426w"
+        sizes="(max-width: 840px) 100vw, 840px"
+      />
+    </span>
+  </span>
+  
+  </a>
+    </p>
+<p>5 个状态 4 个组合操作，怎么设计粒度更合理，就慢慢折腾去吧。</p>]]></description><link>https://zh-hans.reactjs.org/blog/2020/08/22/react-hooks-state-granularity.html</link><guid isPermaLink="false">https://zh-hans.reactjs.org/blog/2020/08/22/react-hooks-state-granularity.html</guid><pubDate>Sat, 22 Aug 2020 00:00:00 GMT</pubDate></item><item><title><![CDATA[React Hooks 的体系设计之一 - 分层]]></title><description><![CDATA[<blockquote>
 <p>本文由百度资深研发工程师兼百度 ECOMFE FE-CMC 现任主席 — 张立理大佬授权转载。本系列文章对 Hook 进行了深度剖析。</p>
 </blockquote>
 <p>React Hooks 是 React 框架内的逻辑复用形式，因其轻量、易编写的形态，必然会逐渐成为一种主流。但在实际的开发中，我依然觉得大部分的开发者对 hook 的使用过于粗暴，缺乏设计感和复用性。</p>
@@ -1706,143 +1960,4 @@ npx react-codemod rename-unsafe-lifecycles</code></pre></div>
 <li><a href="https://github.com/ericnakagawa" target="_blank" rel="nofollow noopener noreferrer">Eric Nakagawa</a> for managing our previous translation process.</li>
 <li><a href="https://github.com/bvaughn" target="_blank" rel="nofollow noopener noreferrer">Brian Vaughn</a> for setting up the <a href="/languages">languages page</a> and managing all the subdomains.</li>
 </ul>
-<p> And finally, thank you to <a href="https://twitter.com/dan_abramov" target="_blank" rel="nofollow noopener noreferrer">Dan Abramov</a> for giving me this opportunity and being a great mentor along the way.</p>]]></description><link>https://zh-hans.reactjs.org/blog/2019/02/23/is-react-translated-yet.html</link><guid isPermaLink="false">https://zh-hans.reactjs.org/blog/2019/02/23/is-react-translated-yet.html</guid><pubDate>Sat, 23 Feb 2019 00:00:00 GMT</pubDate></item><item><title><![CDATA[React v16.8：Hook 发布]]></title><description><![CDATA[<p>从 React 16.8 开始，<a href="/docs/hooks-intro.html">React Hook</a> 稳定版本正式发布啦！</p>
-<h2 id="what-are-hooks"><a href="#what-are-hooks" aria-hidden class="anchor"><svg aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>什么是 Hook？</h2>
-<p>Hook 允许你在不使用 class 的情况下使用 state 和 React 其他特性。你可以 <strong>编写自定义的 Hook</strong> 来在不同的组件中共享有状态的逻辑。</p>
-<p>如果你之前从没听过 Hook，你可能会对以下资料感兴趣：</p>
-<ul>
-<li><a href="/docs/hooks-intro.html">Hook 介绍</a> 解释了为什么我们为 React 添加 Hook。</li>
-<li><a href="/docs/hooks-overview.html">Hook 一览</a> 是快速地对内置 Hook 的概览。</li>
-<li><a href="/docs/hooks-custom.html">搭建你自己的 Hook</a> 示范了如何使用自定义的 Hook 来重用代码。</li>
-<li><a href="https://medium.com/@dan_abramov/making-sense-of-react-hooks-fdbde8803889" target="_blank" rel="nofollow noopener noreferrer">React Hook 的意义</a> 探索了被 Hook 解锁的新可能性。</li>
-<li><a href="https://usehooks.com/" target="_blank" rel="nofollow noopener noreferrer">useHooks.com</a> 一些社区维护的 Hook 示例和实现。</li>
-</ul>
-<p><strong>你并不是必须现在就学习 Hook</strong>。Hook 并没有突破性的改变，并且我们并没有要删除 React class 的计划。其中 <a href="/docs/hooks-faq.html">Hook FAQ</a> 描述了逐步采纳策略。</p>
-<h2 id="no-big-rewrites"><a href="#no-big-rewrites" aria-hidden class="anchor"><svg aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>不需要大型重写 </h2>
-<p>我们不建议立马重写你的项目以在其中使用 Hook。相反，试着在一些新的组件中使用 Hook，并且告诉我们你的想法。使用 Hook 的代码可以和已经存在的使用 class 的的代码 <a href="/docs/hooks-intro.html#gradual-adoption-strategy">一起使用</a>。</p>
-<h2 id="can-i-use-hooks-today"><a href="#can-i-use-hooks-today" aria-hidden class="anchor"><svg aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>我今天可以使用 Hook 吗？</h2>
-<p>可以！从 16.8.0 开始，React 为以下几个功能引入了 React Hook 的稳定实现：</p>
-<ul>
-<li>React DOM</li>
-<li>React DOM Server</li>
-<li>React Test Renderer</li>
-<li>React Shallow Renderer</li>
-</ul>
-<p>请注意 <strong>为了使用 Hook，所有的 React 包的版本需要在 16.8.0 或以上</strong>。如果你忘记对包进行升级，会造成 Hook 无法使用，比如说忘记升级 React DOM。</p>
-<p><strong>React Native 会在 <a href="https://github.com/react-native-community/react-native-releases/issues/79#issuecomment-457735214" target="_blank" rel="nofollow noopener noreferrer">0.59 版本</a> 支持 Hook。</strong></p>
-<h2 id="tooling-support"><a href="#tooling-support" aria-hidden class="anchor"><svg aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>工具支持 </h2>
-<p>React DevTools 现在已经支持 React Hook。目前最新版的 Flow 和 TypeScript 定义也为 React 提供了支持。我们强烈建议使用新的 <a href="https://www.npmjs.com/package/eslint-plugin-react-hooks" target="_blank" rel="nofollow noopener noreferrer"><code class="gatsby-code-text">eslint-plugin-react-hooks</code> 提示规范</a> 来加强对 Hook 的使用。这个功能马上就会被加到 Create React App 的默认配置里。</p>
-<h2 id="whats-next"><a href="#whats-next" aria-hidden class="anchor"><svg aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>下一步 </h2>
-<p>我们在最近发布的 <a href="/blog/2018/11/27/react-16-roadmap.html">React 路线图</a> 里描述了下几个月的计划。</p>
-<p>请注意现在 React Hook 还并没有覆盖<em>所有</em>的 class 使用情况，但是已经 <a href="/docs/hooks-faq.html#do-hooks-cover-all-use-cases-for-classes">十分接近</a> 了。目前，只有 <code class="gatsby-code-text">getSnapshotBeforeUpdate()</code> 和 <code class="gatsby-code-text">componentDidCatch()</code> 方法没有等价的 Hook API，并且这些生命周期相对来说不常用。如果你想的话，你可以在大多数的情况下使用 Hook 来编写代码。</p>
-<p>尽管在 Hook 处于 alpha 测试阶段的时候，React 社区已经开发了很多有趣的 <a href="https://codesandbox.io/react-hooks" target="_blank" rel="nofollow noopener noreferrer">示例</a> 和 <a href="https://usehooks.com" target="_blank" rel="nofollow noopener noreferrer">方法</a> 来使用 Hook 开发动画、表单、订阅、和其他库结合使用等等。我们对 Hook 把代码复用变得简单、帮助你用一种更简单的方式来编写你的组件、并且有着更好的用户体验这件事上感到非常的激动。我们已经迫不及待地想看到你将要创造出什么了！</p>
-<h2 id="testing-hooks"><a href="#testing-hooks" aria-hidden class="anchor"><svg aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>测试 Hook </h2>
-<p>我们在这次发布中已经添加了一个新的叫 <code class="gatsby-code-text">ReactTestUtils.act()</code> 的 API。它保证了在测试中的表现会与在浏览器中的行为会非常的接近。我们建议把所有渲染和触发更新的代码用 <code class="gatsby-code-text">act()</code> 方法包起来。测试框架也可以把他们的 API 用它包起来（例如，<a href="https://testing-library.com/react" target="_blank" rel="nofollow noopener noreferrer"><code class="gatsby-code-text">react-testing-library</code></a> 的 <code class="gatsby-code-text">render</code> 和 <code class="gatsby-code-text">fireEvent</code> 方法就是这样做的）。</p>
-<p>例如，在 <a href="/docs/hooks-effect.html">这个页面</a> 的计时器的例子可以用这样的方法来测试：</p>
-<div class="gatsby-highlight has-highlighted-lines" data-language="jsx"><pre class="gatsby-code-jsx"><code class="gatsby-code-jsx"><span class="token keyword">import</span> React <span class="token keyword">from</span> <span class="token string">'react'</span><span class="token punctuation">;</span>
-<span class="token keyword">import</span> ReactDOM <span class="token keyword">from</span> <span class="token string">'react-dom'</span><span class="token punctuation">;</span>
-<span class="gatsby-highlight-code-line"><span class="token keyword">import</span> <span class="token punctuation">{</span> act <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'react-dom/test-utils'</span><span class="token punctuation">;</span></span><span class="token keyword">import</span> Counter <span class="token keyword">from</span> <span class="token string">'./Counter'</span><span class="token punctuation">;</span>
-
-<span class="token keyword">let</span> container<span class="token punctuation">;</span>
-
-<span class="token function">beforeEach</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
-  container <span class="token operator">=</span> document<span class="token punctuation">.</span><span class="token function">createElement</span><span class="token punctuation">(</span><span class="token string">'div'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-  document<span class="token punctuation">.</span>body<span class="token punctuation">.</span><span class="token function">appendChild</span><span class="token punctuation">(</span>container<span class="token punctuation">)</span><span class="token punctuation">;</span>
-<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-
-<span class="token function">afterEach</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
-  document<span class="token punctuation">.</span>body<span class="token punctuation">.</span><span class="token function">removeChild</span><span class="token punctuation">(</span>container<span class="token punctuation">)</span><span class="token punctuation">;</span>
-  container <span class="token operator">=</span> <span class="token keyword">null</span><span class="token punctuation">;</span>
-<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-
-<span class="token function">it</span><span class="token punctuation">(</span><span class="token string">'can render and update a counter'</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
-  <span class="token comment">// 测试第一次渲染和影响</span>
-<span class="gatsby-highlight-code-line">  <span class="token function">act</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span></span><span class="gatsby-highlight-code-line">    ReactDOM<span class="token punctuation">.</span><span class="token function">render</span><span class="token punctuation">(</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span><span class="token class-name">Counter</span></span> <span class="token punctuation">/></span></span><span class="token punctuation">,</span> container<span class="token punctuation">)</span><span class="token punctuation">;</span></span><span class="gatsby-highlight-code-line">  <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span>  <span class="token keyword">const</span> button <span class="token operator">=</span> container<span class="token punctuation">.</span><span class="token function">querySelector</span><span class="token punctuation">(</span><span class="token string">'button'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-  <span class="token keyword">const</span> label <span class="token operator">=</span> container<span class="token punctuation">.</span><span class="token function">querySelector</span><span class="token punctuation">(</span><span class="token string">'p'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-  <span class="token function">expect</span><span class="token punctuation">(</span>label<span class="token punctuation">.</span>textContent<span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">toBe</span><span class="token punctuation">(</span><span class="token string">'You clicked 0 times'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-  <span class="token function">expect</span><span class="token punctuation">(</span>document<span class="token punctuation">.</span>title<span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">toBe</span><span class="token punctuation">(</span><span class="token string">'You clicked 0 times'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-
-  <span class="token comment">// 测试第二次渲染和影响</span>
-<span class="gatsby-highlight-code-line">  <span class="token function">act</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span></span><span class="gatsby-highlight-code-line">    button<span class="token punctuation">.</span><span class="token function">dispatchEvent</span><span class="token punctuation">(</span><span class="token keyword">new</span> <span class="token class-name">MouseEvent</span><span class="token punctuation">(</span><span class="token string">'click'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>bubbles<span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><span class="gatsby-highlight-code-line">  <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span>  <span class="token function">expect</span><span class="token punctuation">(</span>label<span class="token punctuation">.</span>textContent<span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">toBe</span><span class="token punctuation">(</span><span class="token string">'You clicked 1 times'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-  <span class="token function">expect</span><span class="token punctuation">(</span>document<span class="token punctuation">.</span>title<span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">toBe</span><span class="token punctuation">(</span><span class="token string">'You clicked 1 times'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre></div>
-<p><code class="gatsby-code-text">act()</code> 所调用的方法也会刷新它们内部所产生的影响。</p>
-<p>如果你需要测试一个自定义的 Hook，你可以在你的测试里写一个组件，并且在里面使用 Hook。然后你就可以测试你写的组件了。</p>
-<p>为了减少样板代码，我们建议使用 <a href="https://testing-library.com/react" target="_blank" rel="nofollow noopener noreferrer"><code class="gatsby-code-text">react-testing-library</code></a>，它鼓励你像终端用户一样使用你的组件写测试代码。</p>
-<h2 id="thanks"><a href="#thanks" aria-hidden class="anchor"><svg aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>谢谢 </h2>
-<p>我们非常感谢所有在 <a href="https://github.com/reactjs/rfcs/pull/68" target="_blank" rel="nofollow noopener noreferrer">Hook RFC</a> 上发布并分享反馈的用户。我们已经阅读了你们所有的评论并且依此给我们最终的 API 做了一些调整。</p>
-<h2 id="installation"><a href="#installation" aria-hidden class="anchor"><svg aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>安装 </h2>
-<h3 id="react"><a href="#react" aria-hidden class="anchor"><svg aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>React </h3>
-<p>React v16.8.0 已经在 npm 上发布。</p>
-<p>使用 Yarn 来安装 React 16，运行：</p>
-<div class="gatsby-highlight" data-language="bash"><pre class="gatsby-code-bash"><code class="gatsby-code-bash"><span class="token function">yarn</span> <span class="token function">add</span> react@^16.8.0 react-dom@^16.8.0</code></pre></div>
-<p>使用 npm 来安装 React 16，运行：</p>
-<div class="gatsby-highlight" data-language="bash"><pre class="gatsby-code-bash"><code class="gatsby-code-bash"><span class="token function">npm</span> <span class="token function">install</span> --save react@^16.8.0 react-dom@^16.8.0</code></pre></div>
-<p>我们也在 CDN 上提供了 React 的 UMD 打包：</p>
-<div class="gatsby-highlight" data-language="html"><pre class="gatsby-code-html"><code class="gatsby-code-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>script</span> <span class="token attr-name">crossorigin</span> <span class="token attr-name">src</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>https://unpkg.com/react@16/umd/react.production.min.js<span class="token punctuation">"</span></span><span class="token punctuation">></span></span><span class="token script"></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>script</span><span class="token punctuation">></span></span>
-<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>script</span> <span class="token attr-name">crossorigin</span> <span class="token attr-name">src</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>https://unpkg.com/react-dom@16/umd/react-dom.production.min.js<span class="token punctuation">"</span></span><span class="token punctuation">></span></span><span class="token script"></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>script</span><span class="token punctuation">></span></span></code></pre></div>
-<p>请参考文档的 <a href="/docs/installation.html">详细安装指南</a>。</p>
-<h3 id="eslint-plugin-for-react-hooks"><a href="#eslint-plugin-for-react-hooks" aria-hidden class="anchor"><svg aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>React Hook 的 ESLint 插件 </h3>
-<blockquote>
-<p>注意</p>
-<p>就像上面提到的，我们强烈建议使用 <code class="gatsby-code-text">eslint-plugin-react-hooks</code> 提示规范。</p>
-<p>如果你正在使用 Create React App，与其说手动配置 ESLint，你可以等待马上发版并且包括这个提示规范的下个版本的 <code class="gatsby-code-text">react-scripts</code>。</p>
-</blockquote>
-<p>假设你已经安装了 ESLint，运行：</p>
-<div class="gatsby-highlight" data-language="sh"><pre class="gatsby-code-sh"><code class="gatsby-code-sh"># npm
-npm install eslint-plugin-react-hooks --save-dev
-
-# yarn
-yarn add eslint-plugin-react-hooks --dev</code></pre></div>
-<p>然后把它加到你的 ESLint 配置里：</p>
-<div class="gatsby-highlight" data-language="jsx"><pre class="gatsby-code-jsx"><code class="gatsby-code-jsx"><span class="token punctuation">{</span>
-  <span class="token string">"plugins"</span><span class="token operator">:</span> <span class="token punctuation">[</span>
-    <span class="token comment">// ...</span>
-    <span class="token string">"react-hooks"</span>
-  <span class="token punctuation">]</span><span class="token punctuation">,</span>
-  <span class="token string">"rules"</span><span class="token operator">:</span> <span class="token punctuation">{</span>
-    <span class="token comment">// ...</span>
-    <span class="token string">"react-hooks/rules-of-hooks"</span><span class="token operator">:</span> <span class="token string">"error"</span>
-  <span class="token punctuation">}</span>
-<span class="token punctuation">}</span></code></pre></div>
-<h2 id="changelog"><a href="#changelog" aria-hidden class="anchor"><svg aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>更新日志 </h2>
-<h3 id="react-1"><a href="#react-1" aria-hidden class="anchor"><svg aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>React </h3>
-<ul>
-<li>添加 <a href="https://reactjs.org/docs/hooks-intro.html" target="_blank" rel="nofollow noopener noreferrer">Hook</a> — 一个不用编写 class 就能使用 state 和其他 React 特性的方法。（<a href="https://github.com/acdlite" target="_blank" rel="nofollow noopener noreferrer">@acdlite</a> et al. in <a href="https://github.com/facebook/react/pull/13968" target="_blank" rel="nofollow noopener noreferrer">#13968</a>）</li>
-<li>改善 <code class="gatsby-code-text">useReducer</code> Hook 懒初始化 API。（<a href="https://github.com/acdlite" target="_blank" rel="nofollow noopener noreferrer">@acdlite</a> in <a href="https://github.com/facebook/react/pull/14723" target="_blank" rel="nofollow noopener noreferrer">#14723</a>）</li>
-</ul>
-<h3 id="react-dom"><a href="#react-dom" aria-hidden class="anchor"><svg aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>React DOM </h3>
-<ul>
-<li>为 <code class="gatsby-code-text">useState</code> 和 <code class="gatsby-code-text">useReducer</code> Hook 在相同的值下进行渲染。（<a href="https://github.com/acdlite" target="_blank" rel="nofollow noopener noreferrer">@acdlite</a> in <a href="https://github.com/facebook/react/pull/14569" target="_blank" rel="nofollow noopener noreferrer">#14569</a>）</li>
-<li>不要比较传给 <code class="gatsby-code-text">useEffect</code>/<code class="gatsby-code-text">useMemo</code>/<code class="gatsby-code-text">useCallback</code> Hook 的第一个参数。（<a href="https://github.com/acdlite" target="_blank" rel="nofollow noopener noreferrer">@acdlite</a> in <a href="https://github.com/facebook/react/pull/14594" target="_blank" rel="nofollow noopener noreferrer">#14594</a>）</li>
-<li>使用 <code class="gatsby-code-text">Object.is</code> 算法来比较 <code class="gatsby-code-text">useState</code> 和 <code class="gatsby-code-text">useReducer</code> 的值。（<a href="https://github.com/Jessidhia" target="_blank" rel="nofollow noopener noreferrer">@Jessidhia</a> in <a href="https://github.com/facebook/react/pull/14752" target="_blank" rel="nofollow noopener noreferrer">#14752</a>）</li>
-<li>支持对传给 <code class="gatsby-code-text">React.lazy()</code> 的 thenable 对象进行同步。（<a href="https://github.com/gaearon" target="_blank" rel="nofollow noopener noreferrer">@gaearon</a> in <a href="https://github.com/facebook/react/pull/14626" target="_blank" rel="nofollow noopener noreferrer">#14626</a>）</li>
-<li>严格模式（只有在开发的时候）渲染使用 Hook 的组件两次使其和 class 的表现一样。（<a href="https://github.com/gaearon" target="_blank" rel="nofollow noopener noreferrer">@gaearon</a> in <a href="https://github.com/facebook/react/pull/14654" target="_blank" rel="nofollow noopener noreferrer">#14654</a>）</li>
-<li>在开发的时候 Hook 顺序匹配错误的警告。（<a href="https://github.com/threepointone" target="_blank" rel="nofollow noopener noreferrer">@threepointone</a> in <a href="https://github.com/facebook/react/pull/14585" target="_blank" rel="nofollow noopener noreferrer">#14585</a> and <a href="https://github.com/acdlite" target="_blank" rel="nofollow noopener noreferrer">@acdlite</a> in <a href="https://github.com/facebook/react/pull/14591" target="_blank" rel="nofollow noopener noreferrer">#14591</a>）</li>
-<li>Effect clean-up 方法必须返回 <code class="gatsby-code-text">undefined</code> 或者一个方法。其他的值，包括 <code class="gatsby-code-text">null</code>，都不被允许。<a href="https://github.com/acdlite" target="_blank" rel="nofollow noopener noreferrer">@acdlite</a> in <a href="https://github.com/facebook/react/pull/14119" target="_blank" rel="nofollow noopener noreferrer">#14119</a></li>
-</ul>
-<h3 id="react-test-renderer"><a href="#react-test-renderer" aria-hidden class="anchor"><svg aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>React 测试渲染器 </h3>
-<ul>
-<li>在浅层渲染中支持 Hook。（<a href="https://github.com/trueadm" target="_blank" rel="nofollow noopener noreferrer">@trueadm</a> in <a href="https://github.com/facebook/react/pull/14567" target="_blank" rel="nofollow noopener noreferrer">#14567</a>）</li>
-<li>为浅层渲染修复与 <code class="gatsby-code-text">shouldComponentUpdate</code> 和 <code class="gatsby-code-text">getDerivedStateFromProps</code> 共同的 state。（<a href="https://github.com/chenesan" target="_blank" rel="nofollow noopener noreferrer">@chenesan</a> in <a href="https://github.com/facebook/react/pull/14613" target="_blank" rel="nofollow noopener noreferrer">#14613</a>）</li>
-<li>为批量更新添加 <code class="gatsby-code-text">ReactTestRenderer.act()</code> 和 <code class="gatsby-code-text">ReactTestUtils.act()</code> 方法，因此测试可以和真实的行为变得更加相符。（<a href="https://github.com/threepointone" target="_blank" rel="nofollow noopener noreferrer">@threepointone</a> in <a href="https://github.com/facebook/react/pull/14744" target="_blank" rel="nofollow noopener noreferrer">#14744</a>）</li>
-</ul>
-<h3 id="eslint-plugin-react-hooks"><a href="#eslint-plugin-react-hooks" aria-hidden class="anchor"><svg aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>ESLint 插件：React Hook </h3>
-<ul>
-<li>初次 <a href="https://www.npmjs.com/package/eslint-plugin-react-hooks" target="_blank" rel="nofollow noopener noreferrer">发版</a>。（<a href="https://github.com/calebmer" target="_blank" rel="nofollow noopener noreferrer">@calebmer</a> in <a href="https://github.com/facebook/react/pull/13968" target="_blank" rel="nofollow noopener noreferrer">#13968</a>）</li>
-<li>修复在进入循环后的报告。（<a href="https://github.com/calebmer" target="_blank" rel="nofollow noopener noreferrer">@calebmer</a> and <a href="https://github.com/Yurickh" target="_blank" rel="nofollow noopener noreferrer">@Yurickh</a> in <a href="https://github.com/facebook/react/pull/14661" target="_blank" rel="nofollow noopener noreferrer">#14661</a>）</li>
-<li>不要认为抛出异常是违反规范的行为。（<a href="https://github.com/sophiebits" target="_blank" rel="nofollow noopener noreferrer">@sophiebits</a> in <a href="https://github.com/facebook/react/pull/14040" target="_blank" rel="nofollow noopener noreferrer">#14040</a>）</li>
-</ul>
-<h2 id="hooks-changelog-since-alpha-versions"><a href="#hooks-changelog-since-alpha-versions" aria-hidden class="anchor"><svg aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>在 Alpha 版本后的 Hook 的更新日志 </h2>
-<p>上面的更新日志包括所有自上一个<strong>稳定</strong>版本（16.7.0）后的显著的更改。<a href="/docs/faq-versioning.html">和我们每次的小版本改动一样</a>，所有的更改都没有打破向后兼容。</p>
-<p>如果你正在使用基于 alpha Hook 的 React 版本，请注意这次发版的确包括一些小的 Hook 更改。<strong>我们不建议在生产环境代码中使用 alpha 版本</strong>。我们发布它们是为了在 API 稳定之前在社区反馈的基础上做一些更改。</p>
-<p>这里是在 alpha 版本对 Hook 做的所有显著更改：</p>
-<ul>
-<li>删除 <code class="gatsby-code-text">useMutationEffect</code>。（<a href="https://github.com/sophiebits" target="_blank" rel="nofollow noopener noreferrer">@sophiebits</a> in <a href="https://github.com/facebook/react/pull/14336" target="_blank" rel="nofollow noopener noreferrer">#14336</a>）</li>
-<li>将 <code class="gatsby-code-text">useImperativeMethods</code> 重命名为 <code class="gatsby-code-text">useImperativeHandle</code>。（<a href="https://github.com/threepointone" target="_blank" rel="nofollow noopener noreferrer">@threepointone</a> in <a href="https://github.com/facebook/react/pull/14565" target="_blank" rel="nofollow noopener noreferrer">#14565</a>）</li>
-<li>优化 <code class="gatsby-code-text">useState</code> 和 <code class="gatsby-code-text">useReducer</code> 在同等值下的渲染Hook。（<a href="https://github.com/acdlite" target="_blank" rel="nofollow noopener noreferrer">@acdlite</a> in <a href="https://github.com/facebook/react/pull/14569" target="_blank" rel="nofollow noopener noreferrer">#14569</a>）</li>
-<li>不要比较传给 <code class="gatsby-code-text">useEffect</code>/<code class="gatsby-code-text">useMemo</code>/<code class="gatsby-code-text">useCallback</code> Hook 的第一个参数。（<a href="https://github.com/acdlite" target="_blank" rel="nofollow noopener noreferrer">@acdlite</a> in <a href="https://github.com/facebook/react/pull/14594" target="_blank" rel="nofollow noopener noreferrer">#14594</a>）</li>
-<li>使用 <code class="gatsby-code-text">Object.is</code> 算法来比较 <code class="gatsby-code-text">useState</code> 和 <code class="gatsby-code-text">useReducer</code> 的值。（<a href="https://github.com/Jessidhia" target="_blank" rel="nofollow noopener noreferrer">@Jessidhia</a> in <a href="https://github.com/facebook/react/pull/14752" target="_blank" rel="nofollow noopener noreferrer">#14752</a>）</li>
-<li>严格模式（只有在开发的时候）渲染使用 Hook 的组件两次使其和 class 的表现一样。（<a href="https://github.com/gaearon" target="_blank" rel="nofollow noopener noreferrer">@gaearon</a> in <a href="https://github.com/facebook/react/pull/14654" target="_blank" rel="nofollow noopener noreferrer">#14654</a>）</li>
-<li>改善 <code class="gatsby-code-text">useReducer</code> Hook 懒初始化 API。（<a href="https://github.com/acdlite" target="_blank" rel="nofollow noopener noreferrer">@acdlite</a> in <a href="https://github.com/facebook/react/pull/14723" target="_blank" rel="nofollow noopener noreferrer">#14723</a>）</li>
-</ul>]]></description><link>https://zh-hans.reactjs.org/blog/2019/02/06/react-v16.8.0.html</link><guid isPermaLink="false">https://zh-hans.reactjs.org/blog/2019/02/06/react-v16.8.0.html</guid><pubDate>Wed, 06 Feb 2019 00:00:00 GMT</pubDate></item></channel></rss>
+<p> And finally, thank you to <a href="https://twitter.com/dan_abramov" target="_blank" rel="nofollow noopener noreferrer">Dan Abramov</a> for giving me this opportunity and being a great mentor along the way.</p>]]></description><link>https://zh-hans.reactjs.org/blog/2019/02/23/is-react-translated-yet.html</link><guid isPermaLink="false">https://zh-hans.reactjs.org/blog/2019/02/23/is-react-translated-yet.html</guid><pubDate>Sat, 23 Feb 2019 00:00:00 GMT</pubDate></item></channel></rss>
