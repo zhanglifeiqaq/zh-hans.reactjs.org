@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[React]]></title><description><![CDATA[用于构建用户界面的 JavaScript 库]]></description><link>https://zh-hans.reactjs.org</link><generator>GatsbyJS</generator><lastBuildDate>Tue, 29 Jun 2021 03:00:13 GMT</lastBuildDate><item><title><![CDATA[React 18 发布计划]]></title><description><![CDATA[<p>React 团队非常激动地与你分享一些最新的工作进展：</p>
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[React]]></title><description><![CDATA[用于构建用户界面的 JavaScript 库]]></description><link>https://zh-hans.reactjs.org</link><generator>GatsbyJS</generator><lastBuildDate>Thu, 15 Jul 2021 03:12:40 GMT</lastBuildDate><item><title><![CDATA[React 18 发布计划]]></title><description><![CDATA[<p>React 团队非常激动地与你分享一些最新的工作进展：</p>
 <ol>
 <li>我们已经开始了 React 18 版本的发布工作，这将是我们的下一个主要版本。</li>
 <li>我们创建了工作组，为社区逐步采用 React 18 的新特性做准备。</li>
@@ -266,7 +266,7 @@ ReactDOM<span class="token punctuation">.</span><span class="token function">ren
 <h3 id="nextjs"><a href="#nextjs" aria-hidden class="anchor"><svg aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Next.js </h3>
 <p>Next.js 的 <a href="https://github.com/vercel/next.js/releases/tag/v9.5.3" target="_blank" rel="nofollow noopener noreferrer">v9.5.3</a>+ 会使用新的转换来兼容 React 版本。</p>
 <h3 id="gatsby"><a href="#gatsby" aria-hidden class="anchor"><svg aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Gatsby </h3>
-<p>Gatsby 的 <a href="https://github.com/gatsbyjs/gatsby/blob/master/packages/gatsby/CHANGELOG.md#22452-2020-08-28" target="_blank" rel="nofollow noopener noreferrer">v2.24.5</a>+ 会使用新的转换来兼容 React 版本。</p>
+<p>Gatsby 的 <a href="https://github.com/gatsbyjs/gatsby/blob/main/packages/gatsby/CHANGELOG.md#22452-2020-08-28" target="_blank" rel="nofollow noopener noreferrer">v2.24.5</a>+ 会使用新的转换来兼容 React 版本。</p>
 <blockquote>
 <p>注意</p>
 <p>如果你在 <a href="https://github.com/gatsbyjs/gatsby/issues/26979" target="_blank" rel="nofollow noopener noreferrer">Gatsby 中遇到 error</a>，请升级至 React 17 的 RC 版本，运行 <code class="gatsby-code-text">npm update</code> 解决此问题。</p>
@@ -508,7 +508,7 @@ ReactDOM<span class="token punctuation">.</span><span class="token function">ren
     instance<span class="token punctuation">.</span><span class="token function">someCleanupMethod</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
   <span class="token punctuation">}</span><span class="token punctuation">;</span>
 <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre></div>
-<p>我们不希望此问题对大家造成影响，我们提供了 <a href="https://github.com/facebook/react/tree/master/packages/eslint-plugin-react-hooks" target="_blank" rel="nofollow noopener noreferrer"><code class="gatsby-code-text">eslint-plugin-react-hooks/exhaustive-deps</code> 的 lint 规则</a>（请确保在项目中使用它）会对此情况发出警告。</p>
+<p>我们不希望此问题对大家造成影响，我们提供了 <a href="https://github.com/facebook/react/tree/main/packages/eslint-plugin-react-hooks" target="_blank" rel="nofollow noopener noreferrer"><code class="gatsby-code-text">eslint-plugin-react-hooks/exhaustive-deps</code> 的 lint 规则</a>（请确保在项目中使用它）会对此情况发出警告。</p>
 <h3 id="consistent-errors-for-returning-undefined"><a href="#consistent-errors-for-returning-undefined" aria-hidden class="anchor"><svg aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>返回一致的 undefined 错误 </h3>
 <p>在 React 16 及更早版本中，返回 <code class="gatsby-code-text">undefined</code> 始终是一个错误：</p>
 <div class="gatsby-highlight" data-language="jsx"><pre class="gatsby-code-jsx"><code class="gatsby-code-jsx"><span class="token keyword">function</span> <span class="token function">Button</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
@@ -1007,7 +1007,7 @@ ReactDOM<span class="token punctuation">.</span><span class="token function">ren
 <li>
 <p>We’ve implemented two similar example apps that demonstrate these concepts:</p>
 <ul>
-<li>The <a href="https://github.com/relayjs/relay-examples/tree/master/issue-tracker" target="_blank" rel="nofollow noopener noreferrer">Relay Hooks example app</a> uses GitHub’s public GraphQL API to implement a simple issue tracker app. It includes nested route support with code and data preloading. The code is fully commented — we encourage cloning the repo, running the app locally, and exploring how it works.</li>
+<li>The <a href="https://github.com/relayjs/relay-examples/tree/main/issue-tracker" target="_blank" rel="nofollow noopener noreferrer">Relay Hooks example app</a> uses GitHub’s public GraphQL API to implement a simple issue tracker app. It includes nested route support with code and data preloading. The code is fully commented — we encourage cloning the repo, running the app locally, and exploring how it works.</li>
 <li>We also have a <a href="https://github.com/gaearon/suspense-experimental-github-demo" target="_blank" rel="nofollow noopener noreferrer">non-GraphQL version of the app</a> that demonstrates how these concepts can be applied to other data-fetching libraries.</li>
 </ul>
 </li>
@@ -1110,7 +1110,7 @@ ReactDOM<span class="token punctuation">.</span><span class="token function">ren
   
   </a>
     </p>
-<p><a href="https://react-devtools-tutorial.now.sh/" target="_blank" rel="nofollow noopener noreferrer">访问互动教程</a>试用新版本或 <a href="https://github.com/facebook/react/blob/master/packages/react-devtools/CHANGELOG.md#400-august-15-2019" target="_blank" rel="nofollow noopener noreferrer">参阅 changelog</a>，以了解相关演示视频及更多信息。</p>
+<p><a href="https://react-devtools-tutorial.now.sh/" target="_blank" rel="nofollow noopener noreferrer">访问互动教程</a>试用新版本或 <a href="https://github.com/facebook/react/blob/main/packages/react-devtools/CHANGELOG.md#400-august-15-2019" target="_blank" rel="nofollow noopener noreferrer">参阅 changelog</a>，以了解相关演示视频及更多信息。</p>
 <h2 id="which-versions-of-react-are-supported"><a href="#which-versions-of-react-are-supported" aria-hidden class="anchor"><svg aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>支持哪些版本的 React？</h2>
 <p><strong><code class="gatsby-code-text">react-dom</code></strong></p>
 <ul>
