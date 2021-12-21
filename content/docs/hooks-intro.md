@@ -1,12 +1,11 @@
 ---
 id: hooks-intro
-title: Hook 简介
-permalink: docs/hooks-intro.html
+title: 
 next: hooks-overview.html
 ---
 
-*Hook* 是 React 16.8 的新增特性。它可以让你在不编写 class 的情况下使用 state 以及其他的 React 特性。
-
+*Hook* 是 React 16.8 的新增特性。它可以让你在不编写 class 的情况下使用 st
+ate 以及其他的 React 特性。
 ```js{4,5}
 import React, { useState } from 'react';
 
